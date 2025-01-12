@@ -8,46 +8,32 @@ const EDITOR_URL =
 export default function CodeEditor() {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
-  const [code, setCode] = useState<string>('');
+  const [code, setCode] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('editorCode') || '';
+    }
+    return '';
+  });
 
+  // Save code to localStorage whenever it changes
   useEffect(() => {
-    if (code !== '') {
+    if (code) {
       localStorage.setItem('editorCode', code);
-      console.log('Code saved to localStorage:', code); 
+      console.log('Code saved to localStorage:', code);
     }
   }, [code]);
 
-  localStorage.getItem('editorCode'); //-- --//
-
-  const savedCode = localStorage.getItem('editorCode');
-  if (savedCode) {
-    setCode(savedCode);
-  };
-
-  // useEffect(() => {
-  //   const handleIframeMessage = (event: MessageEvent) => {
-  //     if (event.data && event.data.language && event.data.code) {
-  //       setCode(event.data.code);
-  //     }
-  //   };
-
-  //   window.addEventListener('message', handleIframeMessage);
-
-  //   return () => {
-  //     window.removeEventListener('message', handleIframeMessage);
-  //   };
-  // }, []);
-
+  // Populate code in the iframe
   const populateCode = () => {
     if (iframeRef.current) {
       iframeRef.current.contentWindow?.postMessage(
         {
           eventType: 'populateCode',
-          language: 'python', 
+          language: 'python',
           files: [
             {
               name: 'HelloWorld.py',
-              content: code, 
+              content: code,
             },
           ],
         },
@@ -57,8 +43,8 @@ export default function CodeEditor() {
   };
 
   useEffect(() => {
-    populateCode();
-  }, [code]);
+    populateCode(); // Populate iframe on mount
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -87,9 +73,15 @@ export default function CodeEditor() {
             Load Saved Code
           </Button>
         </div>
+        <textarea
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="Type your code here"
+          className="w-full p-2 border rounded"
+        />
         <iframe
           ref={iframeRef}
-          id="oc-editor" 
+          id="oc-editor"
           height="450px"
           width="100%"
           src={EDITOR_URL}
